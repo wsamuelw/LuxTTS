@@ -1,0 +1,136 @@
+# 🎙️ LuxTTS - Voice Cloning in Google Colab
+# A step-by-step guide to clone any voice using LuxTTS
+# https://github.com/ysharma3501/LuxTTS
+# ============================================
+# STEP 1: CLONE GITHUB & INSTALL DEPENDENCIES
+# ============================================
+print("=" * 60)
+print("📥 STEP 1: Setting up LuxTTS")
+print("=" * 60)
+print("Cloning repository and installing dependencies...")
+
+!git clone https://github.com/ysharma3501/LuxTTS.git
+%cd LuxTTS
+!uv pip install -r requirements.txt
+
+# Install K2 for faster CUDA processing
+print("\n⚡ Installing K2 for faster GPU processing...")
+!pip install k2==1.24.4.dev20251030+cuda12.6.torch2.9.0 -f https://k2-fsa.github.io/k2/cuda.html --no-deps
+
+print("✅ Setup complete!")
+
+# ============================================
+# STEP 2: IMPORT LIBRARIES & LOAD MODEL
+# ============================================
+print("\n" + "=" * 60)
+print("🤖 STEP 2: Loading LuxTTS Model")
+print("=" * 60)
+
+from zipvoice.luxvoice import LuxTTS
+import soundfile as sf
+from IPython.display import Audio, display, HTML
+from google.colab import files
+
+print("Loading model (this may take 30-60 seconds)...")
+lux_tts = LuxTTS('YatharthS/LuxTTS', device='cuda')  # change to 'cpu' if needed
+print("✅ Model loaded successfully!")
+
+# ============================================
+# STEP 3: UPLOAD REFERENCE VOICE
+# ============================================
+print("\n" + "=" * 60)
+print("🎤 STEP 3: Upload Your Reference Voice File")
+print("=" * 60)
+print("Supported formats: WAV, MP3")
+print("\nClick 'Choose Files' below and select your voice file:")
+
+uploaded = files.upload()
+prompt_audio = list(uploaded.keys())[0]
+print(f"✅ Voice file uploaded: {prompt_audio}")
+
+# Play the uploaded voice
+print("\n🎧 Listen to your uploaded voice:")
+display(Audio(prompt_audio))
+
+# ============================================
+# STEP 4: CONFIGURE CLONING SETTINGS
+# ============================================
+print("\n" + "=" * 60)
+print("⚙️ STEP 4: Configure Voice Cloning Settings")
+print("=" * 60)
+
+# TEXT TO CLONE
+text = """
+What was the noise? Can you hear that? it was so loud.
+"""
+
+# CLONING PARAMETERS
+rms = 0.01  # Volume control (0.01 = recommended, increase for louder)
+t_shift = 0.9  # Quality control (higher = better quality but worse WER)
+num_steps = 4  # Processing steps (3-4 is best for efficiency, higher = better quality but slower)
+speed = 1.0  # Speech speed (1.0 = normal, <1.0 = slower, >1.0 = faster)
+return_smooth = False  # Smoothing (True = smoother but less clear, False = clearer)
+ref_duration = 10000  # Reference duration in ms (lower = faster, 1000 if artifacts)
+
+# Display configuration
+print("\n📝 Current Settings:")
+print(f"  Text: '{text}'")
+print(f"  Volume (RMS): {rms}")
+print(f"  Quality (T-shift): {t_shift}")
+print(f"  Processing Steps: {num_steps}")
+print(f"  Speed: {speed}x")
+print(f"  Smoothing: {return_smooth}")
+print(f"  Reference Duration: {ref_duration}ms")
+
+print("\n💡 To customize these settings, edit the values above and re-run this cell.")
+
+# ============================================
+# STEP 5: GENERATE CLONED VOICE
+# ============================================
+print("\n" + "=" * 60)
+print("🔄 STEP 5: Generating Cloned Voice")
+print("=" * 60)
+
+print("\n1️⃣ Encoding reference voice (takes ~10 seconds)...")
+encoded_prompt = lux_tts.encode_prompt(prompt_audio, duration=ref_duration, rms=rms)
+print("✅ Reference voice encoded!")
+
+print("\n2️⃣ Generating speech synthesis...")
+final_wav = lux_tts.generate_speech(
+    text,
+    encoded_prompt,
+    num_steps=num_steps,
+    t_shift=t_shift,
+    speed=speed,
+    return_smooth=return_smooth
+)
+print("✅ Speech generated successfully!")
+
+# Save the audio file
+final_wav = final_wav.numpy().squeeze()
+sf.write('output.wav', final_wav, 48000)
+print("✅ Audio saved as 'output.wav'")
+
+# ============================================
+# STEP 6: PLAY CLONED VOICE IN COLAB
+# ============================================
+print("\n" + "=" * 60)
+print("🎧 STEP 6: Play Cloned Voice")
+print("=" * 60)
+
+print("\nPress play below to listen to your cloned voice:")
+display(Audio(final_wav, rate=48000))
+
+# ============================================
+# STEP 7: DOWNLOAD CLONED VOICE
+# ============================================
+print("\n" + "=" * 60)
+print("📥 STEP 7: Download Your Cloned Voice")
+print("=" * 60)
+
+print("\nClick the button below to download 'output.wav':")
+files.download('output.wav')
+
+print("\n" + "=" * 60)
+print("✨ All Done! Your voice has been cloned successfully!")
+print("=" * 60)
